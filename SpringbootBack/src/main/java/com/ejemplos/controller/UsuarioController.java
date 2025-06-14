@@ -190,7 +190,6 @@ public class UsuarioController {
 	        return ResponseEntity.notFound().build();
 	    }
 
-	    // 👈 CAMBIAR ESTO - usar el nuevo repositorio
 	    List<Amistad> amistades = amistadRepositorio.findAmistadesByUsuarioId(id);
 	    
 	    List<UsuarioDTO> amigosDTO = amistades.stream()
@@ -209,7 +208,7 @@ public class UsuarioController {
 	@PostMapping("/usuario/amigo")
 	public ResponseEntity<?> agregarAmigoYCrearChat(@RequestBody AgregarAmigoDTO dto) {
 	    try {
-	        // 👈 CAMBIAR ESTO - usar el servicio
+	      
 	        ChatDTO chat = amistadService.crearAmistad(dto.getUsuario1Id(), dto.getUsuario2Id());
 	        return ResponseEntity.status(HttpStatus.CREATED).body(chat);
 	    } catch (RuntimeException e) {
@@ -307,7 +306,7 @@ public class UsuarioController {
 	                                usuario.getUsername(),
 	                                0,
 	                                null,
-	                                usuario.getFotoPerfil() // AQUÍ ESTÁ EL CAMBIO: añadir el cuarto parámetro
+	                                usuario.getFotoPerfil() 
 	                                ));
 	            })
 	            .sorted((r1, r2) -> Integer.compare(r2.getPuntosMaximos(), r1.getPuntosMaximos())) // orden descendente
@@ -453,13 +452,13 @@ public class UsuarioController {
 	                                usuario.getUsername(),
 	                                partidaMaxima.getPuntos(),
 	                                partidaMaxima.getFecha(),
-	                                usuario.getFotoPerfil() // Asegurarnos de que está pasando correctamente
+	                                usuario.getFotoPerfil() 
 	                                ))
 	                        .orElse(new UsuarioRankingDTO(
 	                                usuario.getUsername(),
 	                                0,
 	                                null,
-	                                usuario.getFotoPerfil() // Asegurarnos de que está pasando correctamente
+	                                usuario.getFotoPerfil() 
 	                                ));
 	            })
 	            .sorted((r1, r2) -> Integer.compare(r2.getPuntosMaximos(), r1.getPuntosMaximos())) // orden descendente

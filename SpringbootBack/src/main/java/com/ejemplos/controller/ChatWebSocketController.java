@@ -11,7 +11,10 @@ import com.ejemplos.DTO.*;
 import com.ejemplos.servicios.ChatService;
 import com.ejemplos.modelo.Usuario;
 import com.ejemplos.modelo.UsuarioRepositorio;
+
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class ChatWebSocketController {
@@ -284,7 +287,7 @@ public class ChatWebSocketController {
         }
     }
 
-    // NUEVO: Crear chat unificado (privado o grupal) usando CreateChatDTO
+   
     @MessageMapping("/chat.crear")
     public void crearChat(@Payload CreateChatDTO createChatDTO, SimpMessageHeaderAccessor headerAccessor) {
         try {
@@ -335,7 +338,6 @@ public class ChatWebSocketController {
         }
     }
 
-    // Suscribirse a un chat (cuando el usuario entra a ver el chat)
     @MessageMapping("/chat.suscribir")
     public void suscribirseAChat(@Payload SuscribirChatDTO suscribirDTO, SimpMessageHeaderAccessor headerAccessor) {
         try {
@@ -380,8 +382,71 @@ public class ChatWebSocketController {
             e.printStackTrace();
         }
     }
+    
+    @MessageMapping("/chat.salirDelGrupo")
+    public void salirDelGrupo(@Payload SalirDelGrupoDTO salirDTO, SimpMessageHeaderAccessor headerAccessor) {
+        try {
+            System.out.println("=== Usuario saliendo del grupo ===");
+            System.out.println("Chat ID: " + salirDTO.getChatId());
+            System.out.println("Usuario ID: " + salirDTO.getUsuarioId());
+            
+            // Verificar autenticación
+            Authentication auth = (Authentication) headerAccessor.getUser();
+            if (auth == null) {
+                enviarError("No hay autenticación válida", headerAccessor.getSessionId());
+                return;
+            }
+            
+            String username = auth.getName();
+            Usuario usuario = usuarioRepositorio.findById(salirDTO.getUsuarioId()).orElse(null);
+            if (usuario == null || !usuario.getEmail().equals(username)) {
+                enviarError("Usuario no autorizado", headerAccessor.getSessionId());
+                return;
+            }
+            
+            // Obtener participantes antes de que salga
+            List<Long> participantesIds = chatService.obtenerParticipantesDelChat(salirDTO.getChatId());
+            
+            // Ejecutar la salida del grupo
+            chatService.salirDelGrupo(salirDTO.getChatId(), salirDTO.getUsuarioId());
+            
+            // Crear notificación usando tu estructura existente
+            NotificacionGrupoDTO notificacion = NotificacionGrupoDTO.builder()
+                .chatId(salirDTO.getChatId())
+                .usuarioId(salirDTO.getUsuarioId())
+                .usuarioNombre(usuario.getUsername())
+                .accion("SALIR_GRUPO")
+                .mensaje(usuario.getUsername() + " ha salido del grupo")
+                .timestamp(LocalDateTime.now())
+                .build();
+            
+            // Notificar a todos los participantes del chat
+            messagingTemplate.convertAndSend(
+                "/topic/chat." + salirDTO.getChatId() + ".eventos",
+                notificacion
+            );
+            
+            // Confirmar al usuario que salió
+            messagingTemplate.convertAndSend(
+                "/queue/user." + salirDTO.getUsuarioId() + ".confirmacion",
+                Map.of(
+                    "accion", "SALIR_GRUPO", 
+                    "success", true, 
+                    "chatId", salirDTO.getChatId(),
+                    "mensaje", "Has salido del grupo"
+                )
+            );
+            
+            System.out.println("✅ Usuario salió del grupo exitosamente");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error al salir del grupo: " + e.getMessage());
+            e.printStackTrace();
+            enviarError("Error al salir del grupo: " + e.getMessage(), headerAccessor.getSessionId());
+        }
+    }
 
-    // Métodos auxiliares
+
     private void enviarError(String mensaje, String sessionId) {
         ErrorDTO error = ErrorDTO.builder()
             .mensaje(mensaje)

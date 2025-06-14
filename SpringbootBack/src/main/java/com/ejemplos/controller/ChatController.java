@@ -15,8 +15,7 @@ public class ChatController {
     @Autowired
     private ChatService chatService;
     
-    // Endpoints de respaldo para cuando WebSocket no esté disponible
-    // o para operaciones de administración
+
     
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<List<ChatDTO>> obtenerChatsDeUsuario(@PathVariable Long usuarioId) {
@@ -30,14 +29,12 @@ public class ChatController {
         return ResponseEntity.ok(mensajes);
     }
     
-    // Endpoint para obtener mensajes no leídos
     @GetMapping("/usuario/{usuarioId}/no-leidos")
     public ResponseEntity<List<MensajeDTO>> obtenerMensajesNoLeidos(@PathVariable Long usuarioId) {
         List<MensajeDTO> mensajesNoLeidos = chatService.obtenerMensajesNoLeidos(usuarioId);
         return ResponseEntity.ok(mensajesNoLeidos);
     }
     
-    // Endpoint para contar mensajes no leídos en un chat específico
     @GetMapping("/{chatId}/no-leidos/count")
     public ResponseEntity<Long> contarMensajesNoLeidos(
             @PathVariable Long chatId, 
@@ -46,7 +43,6 @@ public class ChatController {
         return ResponseEntity.ok(count);
     }
     
-    // Endpoint para obtener información de un chat específico
     @GetMapping("/{chatId}")
     public ResponseEntity<ChatDTO> obtenerChat(
             @PathVariable Long chatId, 
@@ -55,7 +51,6 @@ public class ChatController {
         return ResponseEntity.ok(chat);
     }
     
-    // NUEVO: Endpoint unificado para crear cualquier tipo de chat
     @PostMapping
     public ResponseEntity<?> crearChat(@RequestBody CreateChatDTO dto, @RequestParam Long creadorId) {
         try {
@@ -66,8 +61,6 @@ public class ChatController {
                 .body("Error al crear chat: " + e.getMessage());
         }
     }
-    
-    // Endpoint de respaldo para crear chat privado (mantener compatibilidad)
     @PostMapping("/privado")
     public ResponseEntity<?> crearChatPrivado(@RequestBody CreateChatPrivadoDTO dto) {
         try {
@@ -79,7 +72,6 @@ public class ChatController {
         }
     }
     
-    // NUEVO: Endpoint específico para crear chat grupal
     @PostMapping("/grupo")
     public ResponseEntity<?> crearChatGrupal(
             @RequestBody CreateChatDTO dto, 
@@ -103,7 +95,6 @@ public class ChatController {
         }
     }
     
-    // NUEVO: Endpoint para enviar mensajes (respaldo del WebSocket)
     @PostMapping("/{chatId}/mensajes")
     public ResponseEntity<?> enviarMensaje(
             @PathVariable Long chatId,
@@ -120,7 +111,6 @@ public class ChatController {
         }
     }
     
-    // NUEVO: Endpoint para marcar mensajes como leídos
     @PutMapping("/{chatId}/mensajes/marcar-leidos")
     public ResponseEntity<?> marcarMensajesLeidos(
             @PathVariable Long chatId,
@@ -134,14 +124,12 @@ public class ChatController {
         }
     }
     
-    // NUEVO: Obtener participantes de un chat
     @GetMapping("/{chatId}/participantes")
     public ResponseEntity<List<Long>> obtenerParticipantes(@PathVariable Long chatId) {
         List<Long> participantes = chatService.obtenerParticipantesDelChat(chatId);
         return ResponseEntity.ok(participantes);
     }
     
-    // NUEVO: Verificar si un usuario es participante de un chat
     @GetMapping("/{chatId}/participantes/{usuarioId}/verificar")
     public ResponseEntity<Boolean> verificarParticipante(
             @PathVariable Long chatId,
@@ -150,7 +138,6 @@ public class ChatController {
         return ResponseEntity.ok(esParticipante);
     }
     
-    // NUEVO: Agregar participante a grupo (solo para administradores)
     @PostMapping("/{chatId}/participantes")
     public ResponseEntity<?> agregarParticipante(
             @PathVariable Long chatId,
@@ -165,7 +152,6 @@ public class ChatController {
         }
     }
     
-    // NUEVO: Remover participante de grupo (solo para administradores)
     @DeleteMapping("/{chatId}/participantes/{usuarioId}")
     public ResponseEntity<?> removerParticipante(
             @PathVariable Long chatId,
@@ -180,7 +166,7 @@ public class ChatController {
         }
     }
     
-    // NUEVO: Obtener último mensaje de un chat
+
     @GetMapping("/{chatId}/ultimo-mensaje")
     public ResponseEntity<?> obtenerUltimoMensaje(@PathVariable Long chatId) {
         return chatService.obtenerUltimoMensaje(chatId)
@@ -188,5 +174,21 @@ public class ChatController {
             .orElse(ResponseEntity.noContent().build());
     }
     
-    
+
+
+    @DeleteMapping("/{chatId}/salir")
+    public ResponseEntity<?> salirDelGrupo(
+            @PathVariable Long chatId,
+            @RequestParam Long usuarioId) {
+        try {
+            chatService.salirDelGrupo(chatId, usuarioId);
+            return ResponseEntity.ok("Has salido del grupo exitosamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("Error al salir del grupo: " + e.getMessage());
+        }
+    }
+
+
+ 
 }
